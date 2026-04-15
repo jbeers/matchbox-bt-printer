@@ -1,0 +1,95 @@
+/**
+* app.bxs — BoxLang Todo App
+* 
+* A clean, robust implementation with strictly lowercase keys and explicit 
+* argument passing for maximum reliability.
+*/
+
+function registerComponent() {
+    Alpine = js.Alpine;
+    if ( isNull( Alpine ) || isNull( Alpine.data ) ) {
+        return false;
+    }
+
+    println("BoxLang: Registering 'bxtodoapp' component...");
+
+    Alpine.data( "bxtodoapp", () => {
+        println("BoxLang: bxtodoapp factory function executed!");
+        
+        return {
+            "todos": [
+                { "id": 1, "text": "Compile BoxLang to WASM", "done": true },
+                { "id": 2, "text": "Build reactive UIs with Alpine.js", "done": false }
+            ],
+            "newtodo" : "",
+            "filter"  : "all",
+            "nextid"  : 3,
+
+            /**
+            * Actions
+            * We receive specific values to avoid Proxy resolution issues
+            */
+            "addtodo" : function( text, nextid, todos ) {
+                println("BoxLang: addtodo called with: " + text);
+                cleanText = trim( text );
+                if ( len( cleanText ) == 0 ) return todos;
+                
+                todos.append({
+                    "id"   : nextid,
+                    "text" : cleanText,
+                    "done" : false
+                });
+                
+                return todos;
+            },
+
+            "toggletodo" : function( todo ) {
+                println("BoxLang: toggletodo called");
+                if ( !isNull( todo ) ) {
+                    todo.done = !todo.done;
+                }
+                return todo;
+            },
+
+            "removetodo" : function( id, todos ) {
+                println("BoxLang: removetodo called for id: " + id);
+                newList = [];
+                for ( t in todos ) {
+                    if ( t.id != id ) newList.append( t );
+                }
+                return newList;
+            },
+
+            "clearcompleted" : function( todos ) {
+                println("BoxLang: clearcompleted called");
+                newList = [];
+                for ( t in todos ) {
+                    if ( !t.done ) newList.append( t );
+                }
+                return newList;
+            },
+
+            /**
+            * UI Helper
+            * Explicitly passing filter and todos for reliability
+            */
+            "getlist" : function( currentFilter, allTodos ) {
+                println("BoxLang: getlist() called. Filter: " + currentFilter + ", Count: " + len(allTodos));
+                
+                if ( isNull( allTodos ) ) return [];
+                
+                results = [];
+                for ( t in allTodos ) {
+                    if ( currentFilter == 'open' && t.done ){ continue; }
+                    if ( currentFilter == 'done' && !t.done ){ continue; }
+                    results.append( t );
+                }
+                
+                return results;
+            }
+        };
+    } );
+
+    println("BoxLang: Component 'bxtodoapp' registered.");
+    return true;
+}

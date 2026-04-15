@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BoxLang + Alpine.js Todo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <script type="module">
+        import { ready, registerComponent } from './app.js';
+
+        // 1. Wait for BoxLang WASM VM to load
+        await ready;
+
+        // 2. Load Alpine module from ESM and assign to global
+        const { default: Alpine } = await import('https://unpkg.com/alpinejs@3/dist/module.esm.js');
+        window.Alpine = Alpine;
+
+        // 3. Register the BoxLang data component factory
+        await registerComponent();
+        
+        // 4. Start Alpine
+        Alpine.start();
+    </script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex items-center justify-center p-4">
+
+    <!-- Strictly lowercase names -->
+    <div class="max-w-xl w-full bg-slate-800 p-8 rounded-2xl shadow-2xl border border-slate-700"
+         x-data="bxtodoapp"
+         x-cloak>
+        
+        <header class="mb-8 text-center">
+            <h1 class="text-4xl font-extrabold text-blue-400 tracking-tight">
+                BoxLang <span class="text-white">Todo</span>
+            </h1>
+            <p class="text-slate-400 mt-2 text-sm italic">Logic running in a WASM VM</p>
+        </header>
+
+        <!-- New Todo Input -->
+        <div class="relative group mb-8">
+            <input 
+                type="text" 
+                x-model="newtodo"
+                @keyup.enter="todos = addtodo(newtodo, nextid++, todos); newtodo = ''"
+                placeholder="What needs to be done?"
+                class="w-full bg-slate-950 border border-slate-600 rounded-xl px-6 py-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all placeholder:text-slate-600"
+            >
+            <button 
+                @click="todos = addtodo(newtodo, nextid++, todos); newtodo = ''"
+                class="absolute right-3 top-3 px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg font-bold transition-all active:scale-95 shadow-lg"
+            >
+                Add
+            </button>
+        </div>
+
+        <!-- Filters -->
+        <div class="flex items-center justify-between mb-6 text-sm">
+            <div class="flex bg-slate-950 p-1 rounded-lg border border-slate-700">
+                <button @click="filter = 'all'" :class="filter === 'all' ? 'bg-slate-700 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'" class="px-4 py-1.5 rounded-md transition-all font-medium">All</button>
+                <button @click="filter = 'open'" :class="filter === 'open' ? 'bg-slate-700 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'" class="px-4 py-1.5 rounded-md transition-all font-medium">Open</button>
+                <button @click="filter = 'done'" :class="filter === 'done' ? 'bg-slate-700 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'" class="px-4 py-1.5 rounded-md transition-all font-medium">Done</button>
+            </div>
+            
+            <button x-show="todos.some(t => t.done)" @click="todos = clearcompleted(todos)" class="text-red-400 hover:text-red-300 transition-colors font-medium">
+                Clear Completed
+            </button>
+        </div>
+
+        <!-- Todo List - Pass filter and todos explicitly -->
+        <div class="space-y-3 min-h-[100px]">
+            <template x-for="todo in getlist(filter, todos)" :key="todo.id">
+                <div 
+                    class="flex items-center gap-4 p-4 rounded-xl border border-slate-700 bg-slate-750 transition-all group"
+                    :class="todo.done ? 'opacity-50 bg-slate-800/50' : 'hover:border-slate-600'"
+                >
+                    <input 
+                        type="checkbox" 
+                        :checked="todo.done"
+                        @change="toggletodo(todo)"
+                        class="w-6 h-6 rounded-full border-2 border-slate-600 appearance-none checked:bg-blue-500 checked:border-blue-500 transition-all cursor-pointer"
+                    >
+
+                    <span 
+                        class="flex-1 text-lg transition-all"
+                        :class="todo.done ? 'line-through text-slate-500' : 'text-slate-200'"
+                        x-text="todo.text"
+                    ></span>
+
+                    <button 
+                        @click="todos = removetodo(todo.id, todos)"
+                        class="p-2 text-slate-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
+                    >
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                    </button>
+                </div>
+            </template>
+
+            <template x-if="todos.length === 0">
+                <div class="py-12 text-center text-slate-500">
+                    <p class="text-xl font-medium">No tasks yet</p>
+                </div>
+            </template>
+        </div>
+
+        <!-- Stats Footer -->
+        <footer class="mt-8 pt-6 border-t border-slate-700 flex justify-between text-xs text-slate-400 font-bold uppercase tracking-wider">
+            <span x-text="`${todos.filter(t => !t.done).length} remaining`" :class="todos.filter(t => !t.done).length > 0 ? 'text-blue-400' : ''"></span>
+            <span x-text="`${todos.filter(t => t.done).length} completed`" :class="todos.filter(t => t.done).length > 0 ? 'text-green-400' : ''"></span>
+            <span x-text="`${todos.length} total`"></span>
+        </footer>
+    </div>
+
+    <style>
+        [x-cloak] { display: none !important; }
+    </style>
+
+</body>
+</html>
