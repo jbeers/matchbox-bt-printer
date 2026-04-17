@@ -53,6 +53,24 @@ jobs:
         run: |
           box install production=true save=false
 
+      - name: TEMP Fix Dependencies
+        run: |
+          # Rename and fix tspl module to compile with current matchbox
+          mv modules/tspl/models/TSPLTemplate.bx modules/tspl/models/TSPLTemplate.bxs
+          sed -i 's/class {/class TSPLTemplate {/' modules/tspl/models/TSPLTemplate.bxs
+          sed -i 's/class {/class ModuleConfig {/' modules/tspl/ModuleConfig.bx
+          sed -i 's/type *: /type = /g' modules/tspl/models/TSPLTemplate.bxs
+          sed -i 's/message *: /message = /g' modules/tspl/models/TSPLTemplate.bxs
+          sed -i 's/throw(/println(/g' modules/tspl/models/TSPLTemplate.bxs
+          sed -i 's/\([a-zA-Z0-9._]*\) += /\1 = \1 + /g' modules/tspl/models/TSPLTemplate.bxs
+          sed -i 's/\([a-zA-Z0-9._]*\) -= /\1 = \1 - /g' modules/tspl/models/TSPLTemplate.bxs
+          sed -i 's/for ( var \([a-zA-Z0-9_]*\) in /for ( \1 in /g' modules/tspl/models/TSPLTemplate.bxs
+          # Fix multiple-variable for loops
+          sed -i 's/for ( var key, value in arguments.primary ) {/for ( key in arguments.primary ) { var value = arguments.primary[key];/g' modules/tspl/models/TSPLTemplate.bxs
+          sed -i 's/for ( var key, value in arguments.secondary ) {/for ( key in arguments.secondary ) { var value = arguments.secondary[key];/g' modules/tspl/models/TSPLTemplate.bxs
+          sed -i 's/for ( var key, value in arguments.step ) {/for ( key in arguments.step ) { var value = arguments.step[key];/g' modules/tspl/models/TSPLTemplate.bxs
+
+
       - name: Generate JS/WASM bundle
         run: |
           ./matchbox/target/release/matchbox --target js app.bxs --output app.js
