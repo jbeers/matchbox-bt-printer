@@ -7,7 +7,9 @@
   "type": "app",
   "language": "BoxLang",
   "description": "Modern MatchBox JS/WASM template using Alpine.js (Components), Tailwind CSS, and BoxLang.",
-  "dependencies": {},
+  "dependencies": {
+    "tspl": "jbeers/tspl"
+  },
   "devDependencies": {},
   "installPaths": {},
   "scripts": {

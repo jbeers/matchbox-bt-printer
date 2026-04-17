@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BoxLang + Alpine.js Todo</title>
+    <title>BoxLang Bluetooth Printer</title>
     <script src="https://cdn.tailwindcss.com"></script>
     
     <script type="module">
@@ -16,101 +16,118 @@
         const { default: Alpine } = await import('https://unpkg.com/alpinejs@3/dist/module.esm.js');
         window.Alpine = Alpine;
 
-        // 3. Register the BoxLang data component factory
+        // 3. Register the BoxLang component
         await registerComponent();
         
         // 4. Start Alpine
         Alpine.start();
     </script>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen flex items-center justify-center p-4">
+<body class="bg-slate-900 text-slate-100 min-h-screen flex items-center justify-center p-4 font-sans">
 
-    <!-- Strictly lowercase names -->
-    <div class="max-w-xl w-full bg-slate-800 p-8 rounded-2xl shadow-2xl border border-slate-700"
-         x-data="bxtodoapp"
+    <div class="max-w-md w-full bg-slate-800 p-8 rounded-3xl shadow-2xl border border-slate-700"
+         x-data="btprinter"
          x-cloak>
         
         <header class="mb-8 text-center">
-            <h1 class="text-4xl font-extrabold text-blue-400 tracking-tight">
-                BoxLang <span class="text-white">Todo</span>
+            <div class="flex justify-center mb-4">
+                <div class="p-4 bg-blue-500/10 rounded-full border border-blue-500/20">
+                    <svg class="w-12 h-12 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0" />
+                    </svg>
+                </div>
+            </div>
+            <h1 class="text-3xl font-extrabold text-blue-400 tracking-tight">
+                MatchBox <span class="text-white">Printer</span>
             </h1>
-            <p class="text-slate-400 mt-2 text-sm italic">Logic running in a WASM VM</p>
+            <p class="text-slate-400 mt-2 text-sm italic">Bluetooth Thermal Printing via WASM</p>
         </header>
 
-        <!-- New Todo Input -->
-        <div class="relative group mb-8">
-            <input 
-                type="text" 
-                x-model="newtodo"
-                @keyup.enter="todos = addtodo(newtodo, nextid++, todos); newtodo = ''"
-                placeholder="What needs to be done?"
-                class="w-full bg-slate-950 border border-slate-600 rounded-xl px-6 py-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all placeholder:text-slate-600"
-            >
-            <button 
-                @click="todos = addtodo(newtodo, nextid++, todos); newtodo = ''"
-                class="absolute right-3 top-3 px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg font-bold transition-all active:scale-95 shadow-lg"
-            >
-                Add
-            </button>
-        </div>
-
-        <!-- Filters -->
-        <div class="flex items-center justify-between mb-6 text-sm">
-            <div class="flex bg-slate-950 p-1 rounded-lg border border-slate-700">
-                <button @click="filter = 'all'" :class="filter === 'all' ? 'bg-slate-700 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'" class="px-4 py-1.5 rounded-md transition-all font-medium">All</button>
-                <button @click="filter = 'open'" :class="filter === 'open' ? 'bg-slate-700 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'" class="px-4 py-1.5 rounded-md transition-all font-medium">Open</button>
-                <button @click="filter = 'done'" :class="filter === 'done' ? 'bg-slate-700 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'" class="px-4 py-1.5 rounded-md transition-all font-medium">Done</button>
+        <!-- Status Card -->
+        <div class="bg-slate-950 rounded-2xl p-6 mb-8 border border-slate-700 shadow-inner">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-bold uppercase tracking-widest text-slate-500">Status</span>
+                <div class="flex items-center gap-2">
+                    <div class="w-2 h-2 rounded-full" 
+                         :class="characteristic ? 'bg-green-500 animate-pulse' : (connection ? 'bg-yellow-500' : 'bg-red-500')"></div>
+                    <span class="text-xs font-mono font-bold" 
+                          :class="characteristic ? 'text-green-400' : 'text-slate-400'"
+                          x-text="status"></span>
+                </div>
             </div>
             
-            <button x-show="todos.some(t => t.done)" @click="todos = clearcompleted(todos)" class="text-red-400 hover:text-red-300 transition-colors font-medium">
-                Clear Completed
-            </button>
+            <template x-if="device">
+                <div class="mt-4 pt-4 border-t border-slate-800">
+                    <p class="text-xs text-slate-500 uppercase font-bold mb-1">Connected Device</p>
+                    <p class="text-lg font-bold text-white" x-text="device.name"></p>
+                </div>
+            </template>
+
+            <template x-if="error">
+                <div class="mt-4 p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-xs">
+                    <p x-text="error"></p>
+                </div>
+            </template>
         </div>
 
-        <!-- Todo List - Pass filter and todos explicitly -->
-        <div class="space-y-3 min-h-[100px]">
-            <template x-for="todo in getlist(filter, todos)" :key="todo.id">
-                <div 
-                    class="flex items-center gap-4 p-4 rounded-xl border border-slate-700 bg-slate-750 transition-all group"
-                    :class="todo.done ? 'opacity-50 bg-slate-800/50' : 'hover:border-slate-600'"
-                >
-                    <input 
-                        type="checkbox" 
-                        :checked="todo.done"
-                        @change="toggletodo(todo)"
-                        class="w-6 h-6 rounded-full border-2 border-slate-600 appearance-none checked:bg-blue-500 checked:border-blue-500 transition-all cursor-pointer"
-                    >
+        <!-- Controls -->
+        <div class="space-y-4">
+            <template x-if="!isSupported">
+                <div class="p-4 bg-orange-500/10 border border-orange-500/20 rounded-2xl text-orange-300 text-sm text-center">
+                    Web Bluetooth is not supported in this browser or environment.
+                </div>
+            </template>
 
-                    <span 
-                        class="flex-1 text-lg transition-all"
-                        :class="todo.done ? 'line-through text-slate-500' : 'text-slate-200'"
-                        x-text="todo.text"
-                    ></span>
-
+            <template x-if="isSupported">
+                <div class="flex flex-col gap-4">
                     <button 
-                        @click="todos = removetodo(todo.id, todos)"
-                        class="p-2 text-slate-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
+                        @click="void (connection ? disconnect() : connect())"
+                        class="w-full py-4 rounded-2xl font-bold transition-all active:scale-[0.98] shadow-lg flex items-center justify-center gap-3"
+                        :class="connection ? 'bg-slate-700 hover:bg-slate-600 text-white border border-slate-600' : 'bg-blue-600 hover:bg-blue-500 text-white'"
                     >
                         <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                         </svg>
+                        <span x-text="connection ? 'Disconnect Printer' : 'Search for Printer'"></span>
+                    </button>
+
+                    <button 
+                        @click="
+                            const response = await fetch('./logo.png');
+                            const arrayBuffer = await response.arrayBuffer();
+                            const bytes = new Uint8Array(arrayBuffer);
+                            await printHello(bytes);
+                        "
+                        :disabled="!characteristic"
+                        class="w-full py-4 bg-green-600 hover:bg-green-500 disabled:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed rounded-2xl font-bold transition-all active:scale-[0.98] shadow-lg text-white flex items-center justify-center gap-3"
+                    >
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                        </svg>
+                        Print Hello World
                     </button>
                 </div>
             </template>
-
-            <template x-if="todos.length === 0">
-                <div class="py-12 text-center text-slate-500">
-                    <p class="text-xl font-medium">No tasks yet</p>
-                </div>
-            </template>
         </div>
 
-        <!-- Stats Footer -->
-        <footer class="mt-8 pt-6 border-t border-slate-700 flex justify-between text-xs text-slate-400 font-bold uppercase tracking-wider">
-            <span x-text="`${todos.filter(t => !t.done).length} remaining`" :class="todos.filter(t => !t.done).length > 0 ? 'text-blue-400' : ''"></span>
-            <span x-text="`${todos.filter(t => t.done).length} completed`" :class="todos.filter(t => t.done).length > 0 ? 'text-green-400' : ''"></span>
-            <span x-text="`${todos.length} total`"></span>
+        <footer class="mt-8 text-center">
+            <p class="text-xs text-slate-500 font-medium uppercase tracking-widest">Built with BoxLang & MatchBox</p>
         </footer>
+         <button
+    @click="
+      console.log('plain js before requestDevice', navigator.userActivation.isActive);
+      navigator.bluetooth.requestDevice({
+        acceptAllDevices: true,
+        optionalServices: [
+          '000018f0-0000-1000-8000-00805f9b34fb',
+          '49535343-fe7d-4ae5-8fa9-9fafd205e455'
+        ]
+      }).then(d => console.log('picked', d)).catch(e => console.error('plain js error', e));
+    "
+  >
+    Plain JS Bluetooth Test
+  </button>
+
     </div>
 
     <style>

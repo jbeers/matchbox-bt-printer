@@ -1,0 +1,79 @@
+name: Deploy GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      MATCHBOX_REBUILD_EMBEDDED_STUBS: "0"
+    steps:
+      - name: Checkout app repo
+        uses: actions/checkout@v4
+
+      - name: Checkout MatchBox
+        uses: actions/checkout@v4
+        with:
+          repository: ortus-boxlang/matchbox
+          ref: develop
+          path: matchbox
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            matchbox
+
+      - name: Build MatchBox CLI
+        run: cargo build --release -p matchbox
+        working-directory: matchbox
+
+      - name: Generate JS/WASM bundle
+        run: |
+          ./matchbox/target/release/matchbox --target js app.bxs --output app.js
+
+      - name: Prepare Pages artifact
+        run: |
+          mkdir -p dist
+          cp index.html dist/
+          cp logo.png dist/
+          cp app.js dist/
+          cp app.wasm dist/
+          touch dist/.nojekyll
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
