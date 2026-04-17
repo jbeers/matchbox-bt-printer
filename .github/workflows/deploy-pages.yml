@@ -46,6 +46,13 @@ jobs:
         run: cargo build --release -p matchbox
         working-directory: matchbox
 
+      - name: Setup CommandBox
+        uses: Ortus-Solutions/setup-commandbox@main
+
+      - name: Build App
+        run: |
+          box install production=true save=false
+
       - name: Generate JS/WASM bundle
         run: |
           ./matchbox/target/release/matchbox --target js app.bxs --output app.js
