@@ -55,7 +55,7 @@ jobs:
 
       - name: Generate JS/WASM bundle
         run: |
-          ./matchbox --target js app.bxs --output app.js
+          ./matchbox --target js app.bxs
 
       - name: Prepare Pages artifact
         run: |
