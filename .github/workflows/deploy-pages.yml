@@ -54,6 +54,15 @@ jobs:
           chmod +x matchbox
           ./matchbox --version
 
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          components: clippy, rustfmt
+
+      - name: Install wasm-bindgen-cli
+        run: cargo install wasm-bindgen-cli
+
       - name: Generate JS/WASM bundle
         run: |
           ./matchbox --target js --verbose app.bxs
