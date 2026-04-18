@@ -50,7 +50,7 @@ jobs:
 
       - name: Download MatchBox
         run: |
-          curl -L -o matchbox https://github.com/ortus-boxlang/matchbox/releases/download/v0.6.1/matchbox-linux-x64
+          curl -L -o matchbox https://github.com/ortus-boxlang/matchbox/releases/download/v0.6.3/matchbox-linux-x64
           chmod +x matchbox
           ./matchbox --version
 
