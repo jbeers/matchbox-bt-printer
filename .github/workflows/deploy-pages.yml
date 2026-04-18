@@ -57,6 +57,7 @@ jobs:
 
       - name: Generate JS/WASM bundle
         run: |
+          ./matchbox --build app.bxs
           ./matchbox --target js app.bxs
           ls -la
 
