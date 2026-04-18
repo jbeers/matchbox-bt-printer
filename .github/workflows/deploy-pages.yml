@@ -52,6 +52,7 @@ jobs:
         run: |
           curl -L -o matchbox https://github.com/ortus-boxlang/matchbox/releases/download/v0.6.0/matchbox-linux-x64
           chmod +x matchbox
+          ls -la
 
       - name: Generate JS/WASM bundle
         run: |
