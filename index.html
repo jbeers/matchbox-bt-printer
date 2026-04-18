@@ -113,22 +113,14 @@
         <footer class="mt-8 text-center">
             <p class="text-xs text-slate-500 font-medium uppercase tracking-widest">Built with BoxLang & MatchBox</p>
         </footer>
-         <button
-    @click="
-      console.log('plain js before requestDevice', navigator.userActivation.isActive);
-      navigator.bluetooth.requestDevice({
-        acceptAllDevices: true,
-        optionalServices: [
-          '000018f0-0000-1000-8000-00805f9b34fb',
-          '49535343-fe7d-4ae5-8fa9-9fafd205e455'
-        ]
-      }).then(d => console.log('picked', d)).catch(e => console.error('plain js error', e));
-    "
-  >
-    Plain JS Bluetooth Test
-  </button>
+
+        <div id="output">
+        
+    </div>
 
     </div>
+
+    
 
     <style>
         [x-cloak] { display: none !important; }

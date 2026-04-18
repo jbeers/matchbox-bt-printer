@@ -3,6 +3,15 @@
 */
 import modules.tspl.models.TSPLTemplate;
 
+function logOutput( str ){
+    output = js.document.getElementById("output");
+    if ( !isNull(output) ) {
+        el = js.document.createElement("p");
+        el.innerText = str;
+        output.appendChild(el);
+    }
+}
+
 class BTPrinterComponent {
     this.device = null;
     this.connection = null;
@@ -10,23 +19,25 @@ class BTPrinterComponent {
     this.status = "Ready";
     this.isSupported = !isNull(js.navigator.bluetooth);
     this.error = "";
+    this.logs = ["what"];
 
     function connect() {
-         println("secure=" & js.window.isSecureContext);
-  println("userActive=" & js.navigator.userActivation.isActive);
+        logOutput("Attempting to connect to Bluetooth printer...");
+         logOutput("secure=" & js.window.isSecureContext);
+  logOutput("userActive=" & js.navigator.userActivation.isActive);
         // runAsync( () => {
-            println("BoxLang: connect() triggered");
+            logOutput("BoxLang: connect() triggered");
             this.error = "";
-            println( 'xxxx')
+            logOutput( 'xxxx')
             this.status = "Requesting device...";
             
             try {
-                println( 'xxxx')
+                logOutput( 'xxxx')
                 if ( isNull(js.navigator.bluetooth) ) {
                     throw("Web Bluetooth is not available in this browser context.");
                 }
 
-                println("BoxLang: Calling requestDevice...");
+                logOutput("BoxLang: Calling requestDevice...");
                 // Use full 128-bit UUIDs for compatibility
                 options = {
                     "acceptAllDevices": true,
@@ -42,76 +53,76 @@ class BTPrinterComponent {
   js.console.log("optionalServices", options.optionalServices);
                 
                 this.device = js.navigator.bluetooth.requestDevice(options).get();
-                println( "xxxxxxxxx" );
+                logOutput( "xxxxxxxxx" );
                 
                 if ( isNull(this.device) ) {
-                    println("BoxLang: No device selected");
+                    logOutput("BoxLang: No device selected");
                     this.status = "Cancelled";
                     return;
                 }
 
-                println("BoxLang: Device selected: " & this.device.name);
-                println("BoxLang: Device id: " & this.device.id);
-                println("BoxLang: Has gatt: " & !isNull(this.device.gatt));
-                println("BoxLang: gatt.connected before connect: " & this.device.gatt.connected);
+                logOutput("BoxLang: Device selected: " & this.device.name);
+                logOutput("BoxLang: Device id: " & this.device.id);
+                logOutput("BoxLang: Has gatt: " & !isNull(this.device.gatt));
+                logOutput("BoxLang: gatt.connected before connect: " & this.device.gatt.connected);
                 this.status = "Connecting to " & this.device.name + "...";
                 
                 try {
                     server = this.device.gatt.connect().get();
                 } catch ( e ) {
-                    println("BoxLang: First gatt.connect() failed: " & e.name & " / " & e.message);
-                    println("BoxLang: Raw connect error: " & e);
-                    println("BoxLang: Retrying gatt.connect() once...");
+                    logOutput("BoxLang: First gatt.connect() failed: " & e.name & " / " & e.message);
+                    logOutput("BoxLang: Raw connect error: " & e);
+                    logOutput("BoxLang: Retrying gatt.connect() once...");
                     server = this.device.gatt.connect().get();
                 }
                 this.connection = server;
-                println("BoxLang: GATT connected");
+                logOutput("BoxLang: GATT connected");
 
-                println("BoxLang: Discovering services...");
+                logOutput("BoxLang: Discovering services...");
                 this.status = "Discovering services...";
                 services = server.getPrimaryServices().get();
-                println("BoxLang: Found " & len(services) & " services");
+                logOutput("BoxLang: Found " & len(services) & " services");
 
                 for ( service in services ) {
-                    println("BoxLang: Service: " & service.uuid);
+                    logOutput("BoxLang: Service: " & service.uuid);
                     this.status = "Inspecting service " & service.uuid & "...";
 
                     try {
                         chars = service.getCharacteristics().get();
-                        println("BoxLang: Found " & len(chars) & " characteristics in " & service.uuid);
+                        logOutput("BoxLang: Found " & len(chars) & " characteristics in " & service.uuid);
 
                         for ( char in chars ) {
-                            println("BoxLang: Discovered characteristic: " & char.uuid);
+                            logOutput("BoxLang: Discovered characteristic: " & char.uuid);
                             props = char.properties;
                             if ( props.write || props.writeWithoutResponse ) {
                                 this.characteristic = char;
                                 this.status = "Connected to " & this.device.name;
-                                println("BoxLang: Found writeable characteristic: " & char.uuid);
-                                println("BoxLang: Characteristic service: " & service.uuid);
+                                logOutput("BoxLang: Found writeable characteristic: " & char.uuid);
+                                logOutput("BoxLang: Characteristic service: " & service.uuid);
                                 return;
                             }
                         }
                     } catch ( e ) {
-                        println("BoxLang: Failed inspecting service " & service.uuid & ": " & e.message);
+                        logOutput("BoxLang: Failed inspecting service " & service.uuid & ": " & e.message);
                     }
                 }
 
                 this.status = "Connected, but no writeable characteristic found.";
             } catch ( e ) {
-                println("BoxLang: Error type in connect(): " & e.name);
-                println("BoxLang: Raw error in connect(): " & e);
-                println("BoxLang: Error in connect(): " & e.message);
+                logOutput("BoxLang: Error type in connect(): " & e.name);
+                logOutput("BoxLang: Raw error in connect(): " & e);
+                logOutput("BoxLang: Error in connect(): " & e.message);
                 this.error = "Connection failed: " & e.message;
                 this.status = "Disconnected";
             }
     //     }).onError((e) => {
-    //       println("BoxLang: connect() failed: " & e);
+    //       logOutput("BoxLang: connect() failed: " & e);
     //   });
 
     }
 
     function disconnect() {
-        println("BoxLang: disconnect() triggered");
+        logOutput("BoxLang: disconnect() triggered");
         if ( !isNull(this.device) && !isNull(this.device.gatt) ) {
             this.device.gatt.disconnect();
         }
@@ -122,7 +133,7 @@ class BTPrinterComponent {
     }
 
     function printHello( imageBytes ) {
-        println("BoxLang: printHello() triggered");
+        logOutput("BoxLang: printHello() triggered");
         if ( isNull(this.characteristic) ) {
             this.error = "Not connected to a printer.";
             return;
@@ -139,7 +150,7 @@ class BTPrinterComponent {
                 .text( 20, 20, "3", 0, 1, 1, "Hello, from BoxLang!" );
             
             if ( !isNull(imageBytes) && len(imageBytes) > 0 ) {
-                println("BoxLang: Adding image to print job (" & len(imageBytes) + " bytes)");
+                logOutput("BoxLang: Adding image to print job (" & len(imageBytes) + " bytes)");
                 tspl.image( 20, 80, imageBytes );
             }
             
@@ -149,12 +160,12 @@ class BTPrinterComponent {
             commandBytes = charsetDecode( commands, "UTF-8" );
             
             this.status = "Sending to printer...";
-            println("BoxLang: Writing " & len(commandBytes) + " bytes to characteristic...");
+            logOutput("BoxLang: Writing " & len(commandBytes) + " bytes to characteristic...");
             this.characteristic.writeValueWithResponse( commandBytes ).get();
             this.status = "Print job sent!";
-            println("BoxLang: Print job sent successfully");
+            logOutput("BoxLang: Print job sent successfully");
         } catch ( e ) {
-            println("BoxLang: Error in printHello(): " & e.message);
+            logOutput("BoxLang: Error in printHello(): " & e.message);
             this.error = "Print failed: " & e.message;
             this.status = "Error during print";
         }
@@ -167,12 +178,12 @@ function registerComponent() {
         return false;
     }
 
-    println("BoxLang: Registering 'btprinter' component...");
+    logOutput("BoxLang: Registering 'btprinter' component...");
 
     Alpine.data( "btprinter", () => {
         return new BTPrinterComponent();
     });
 
-    println("BoxLang: Component 'btprinter' registered.");
+    logOutput("BoxLang: Component 'btprinter' registered.");
     return true;
 }
