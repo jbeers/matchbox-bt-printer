@@ -50,16 +50,13 @@ jobs:
 
       - name: Download MatchBox
         run: |
-          curl -L -o matchbox https://github.com/ortus-boxlang/matchbox/releases/download/v0.6.0/matchbox-linux-x64
+          curl -L -o matchbox https://github.com/ortus-boxlang/matchbox/releases/download/v0.6.1/matchbox-linux-x64
           chmod +x matchbox
-          ls -la
           ./matchbox --version
 
       - name: Generate JS/WASM bundle
         run: |
-          ./matchbox --build app.bxs
-          ./matchbox --target js app.bxs
-          ls -la
+          ./matchbox --target js --verbose app.bxs
 
       - name: Prepare Pages artifact
         run: |
