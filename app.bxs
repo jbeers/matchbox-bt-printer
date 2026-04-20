@@ -19,9 +19,9 @@ class BTPrinterComponent {
     this.status = "Ready";
     this.isSupported = !isNull(js.navigator.bluetooth);
     this.error = "";
-    this.logs = ["what"];
 
     function connect() {
+        this.status = "connecting";
         logOutput("Attempting to connect to Bluetooth printer...");
          logOutput("secure=" & js.window.isSecureContext);
   logOutput("userActive=" & js.navigator.userActivation.isActive);
