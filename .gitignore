@@ -3,3 +3,4 @@ app_bg.wasm.d.ts
 app.d.ts
 app.js
 app.wasm
+modules/

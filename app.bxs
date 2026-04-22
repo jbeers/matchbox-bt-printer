@@ -2,11 +2,18 @@
 * app.bxs — BoxLang Bluetooth Printer
 */
 import modules.tspl.models.TSPLTemplate;
+import modules.tspl.models.TSPLJSBluetoothWriter;
+import js:document;
+import js:console;
+import js:navigator.bluetooth;
+import js:Object;
+import js:isSecureContext;
+import js:navigator.userActivation;
 
 function logOutput( str ){
-    output = js.document.getElementById("output");
+    output = document.getElementById("output");
     if ( !isNull(output) ) {
-        el = js.document.createElement("p");
+        el = document.createElement("p");
         el.innerText = str;
         output.appendChild(el);
     }
@@ -17,14 +24,14 @@ class BTPrinterComponent {
     this.connection = null;
     this.characteristic = null;
     this.status = "Ready";
-    this.isSupported = !isNull(js.navigator.bluetooth);
+    this.isSupported = !isNull(bluetooth);
     this.error = "";
 
     function connect() {
-        this.status = "connecting";
+        console.log("BoxLang: connect() called");
         logOutput("Attempting to connect to Bluetooth printer...");
-         logOutput("secure=" & js.window.isSecureContext);
-  logOutput("userActive=" & js.navigator.userActivation.isActive);
+         logOutput("secure=" & isSecureContext);
+  logOutput("userActive=" & userActivation.isActive);
         // runAsync( () => {
             logOutput("BoxLang: connect() triggered");
             this.error = "";
@@ -33,7 +40,7 @@ class BTPrinterComponent {
             
             try {
                 logOutput( 'xxxx')
-                if ( isNull(js.navigator.bluetooth) ) {
+                if ( isNull(bluetooth) ) {
                     throw("Web Bluetooth is not available in this browser context.");
                 }
 
@@ -47,12 +54,12 @@ class BTPrinterComponent {
                     ]
                 };
 
-                js.console.log("option keys", js.Object.keys(options));
-  js.console.log("acceptAllDevices", options.acceptAllDevices);
-  js.console.log("filters", options.filters);
-  js.console.log("optionalServices", options.optionalServices);
+                console.log("option keys", Object.keys(options));
+  console.log("acceptAllDevices", options.acceptAllDevices);
+  console.log("filters", options.filters);
+  console.log("optionalServices", options.optionalServices);
                 
-                this.device = js.navigator.bluetooth.requestDevice(options).get();
+                this.device = bluetooth.requestDevice(options).get();
                 logOutput( "xxxxxxxxx" );
                 
                 if ( isNull(this.device) ) {
@@ -146,25 +153,32 @@ class BTPrinterComponent {
             tspl.dimensions( 40, 30 )
                 .gap( 2 )
                 .direction( 1 )
-                .cls()
-                .text( 20, 20, "3", 0, 1, 1, "Hello, from BoxLang!" );
-            
-            if ( !isNull(imageBytes) && len(imageBytes) > 0 ) {
-                logOutput("BoxLang: Adding image to print job (" & len(imageBytes) + " bytes)");
-                tspl.image( 20, 80, imageBytes );
+                .text( "Hello, from BoxLang!" );
+            console.log( "here 1")
+            if ( !isNull(imageBytes) ) {
+                logOutput("BoxLang: Adding image to print job (" & len(imageBytes) & " bytes)");
+                tspl.image( imageBytes, 20, 80 );
             }
             
             tspl.print( 1 );
+
+            console.log( "here 2")
             
-            commands = tspl.toCommands();
-            commandBytes = charsetDecode( commands, "UTF-8" );
+            chunks = tspl.write( {}, new TSPLJSBluetoothWriter() );
+            console.log( chunks )
+            console.log( "here 3")
             
             this.status = "Sending to printer...";
-            logOutput("BoxLang: Writing " & len(commandBytes) + " bytes to characteristic...");
-            this.characteristic.writeValueWithResponse( commandBytes ).get();
+            logOutput("BoxLang: Writing " & arrayLen(chunks) & " chunks to characteristic...");
+            
+            for ( chunk in chunks ) {
+                this.characteristic.writeValueWithoutResponse( chunk ).get();
+            }
+            
             this.status = "Print job sent!";
             logOutput("BoxLang: Print job sent successfully");
         } catch ( e ) {
+            console.log( e )
             logOutput("BoxLang: Error in printHello(): " & e.message);
             this.error = "Print failed: " & e.message;
             this.status = "Error during print";
